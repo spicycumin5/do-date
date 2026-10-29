@@ -1,0 +1,74 @@
+/* Color tokens. Dark values are repeated: once for the OS preference, once for the explicit toggle. */
+
+:root {
+  --bg: #f6f1e7;
+  --surface: #fffaf1;
+  --surface-2: #f0e8da;
+  --text: #2a231a;
+  --muted: #7a6f5e;
+  --faint: #a89c88;
+  --border: #e3d8c5;
+  --accent: #c0601c;
+  --accent-soft: #f5dfc8;
+  --on-accent: #fff;
+  --danger: #b64034;
+  --good: #3f7d4f;
+  --tank-bg: #ede4d3;
+  --glass: #c4b79f;
+  --ghost: rgba(120, 100, 70, .07);
+  --ghost-text: #a39479;
+  --hatch-bg: #e6dbc7;
+  --hatch-line: #cdbea3;
+  --ink-on-color: #1d1710;
+  --shadow: 0 1px 2px rgba(60, 40, 10, .06), 0 10px 30px rgba(60, 40, 10, .07);
+  --font-display: Fraunces, Georgia, serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14110d;
+    --surface: #1d1914;
+    --surface-2: #26211a;
+    --text: #f2eadc;
+    --muted: #a69a87;
+    --faint: #6f6555;
+    --border: #332c22;
+    --accent: #f0a04b;
+    --accent-soft: #3a2a17;
+    --on-accent: #1d1710;
+    --danger: #e07465;
+    --good: #8fcf98;
+    --tank-bg: #1a1611;
+    --glass: #4d4336;
+    --ghost: rgba(255, 240, 210, .035);
+    --ghost-text: #6f6555;
+    --hatch-bg: #29231b;
+    --hatch-line: #3e3528;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #14110d;
+  --surface: #1d1914;
+  --surface-2: #26211a;
+  --text: #f2eadc;
+  --muted: #a69a87;
+  --faint: #6f6555;
+  --border: #332c22;
+  --accent: #f0a04b;
+  --accent-soft: #3a2a17;
+  --on-accent: #1d1710;
+  --danger: #e07465;
+  --good: #8fcf98;
+  --tank-bg: #1a1611;
+  --glass: #4d4336;
+  --ghost: rgba(255, 240, 210, .035);
+  --ghost-text: #6f6555;
+  --hatch-bg: #29231b;
+  --hatch-line: #3e3528;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}

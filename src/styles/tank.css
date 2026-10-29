@@ -1,0 +1,90 @@
+/* Stats, the SVG tank, tooltip, floating +/- markers, and the pace controls. */
+
+/* ---------- stats ---------- */
+.stats { text-align: center; margin-bottom: 6px; }
+.stat-big {
+  font-family: var(--font-display); font-weight: 650; font-size: 54px; line-height: 1;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.stat-label { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.stat-sub { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.stat-sub b { color: var(--text); font-weight: 600; }
+.finish {
+  display: inline-block; margin-top: 12px; padding: 7px 14px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--text); font-size: 14px;
+}
+.finish b { color: var(--accent); }
+
+/* ---------- tank ---------- */
+.tank-wrap { position: relative; margin: 8px auto 0; max-width: 360px; }
+#tank { display: block; width: 100%; height: auto; max-height: 62vh; margin: 0 auto; overflow: visible; }
+.tank-back { fill: var(--tank-bg); }
+.tank-glass { fill: none; stroke: var(--glass); stroke-width: 3; }
+.tank-rim { stroke: var(--glass); stroke-width: 3; stroke-linecap: round; }
+.tank-sheen { fill: #fff; opacity: .07; }
+.tick line { stroke: var(--faint); stroke-width: 1; }
+.tick text { fill: var(--faint); font-size: 10px; font-variant-numeric: tabular-nums; }
+.seg { stroke: var(--tank-bg); stroke-width: 1.5; cursor: pointer; transition: filter .15s; }
+.seg:hover, .seg.hl { filter: brightness(1.12) saturate(1.1); }
+.seg-buffer { fill: url(#hatch); stroke: none; }
+.hatch-bg { fill: var(--hatch-bg); }
+.hatch-line { stroke: var(--hatch-line); }
+.ghost { fill: var(--ghost); }
+.seg-label { fill: var(--ink-on-color); font-size: 12px; font-weight: 650; pointer-events: none; transition: opacity .2s; }
+.ghost-label { fill: var(--ghost-text); font-size: 12px; font-weight: 600; pointer-events: none; transition: opacity .2s; }
+.buffer-label { fill: var(--muted); font-size: 11px; font-weight: 600; pointer-events: none; transition: opacity .2s; }
+.wave-fill { fill: #fff; opacity: .2; }
+.wave-line { fill: none; stroke: #fff; stroke-width: 1.5; opacity: .45; }
+.wave-inner { animation: wave 3.2s linear infinite; }
+@keyframes wave { to { transform: translateX(-60px); } }
+.tank-msg { fill: var(--muted); font-size: 14px; text-anchor: middle; }
+.tank-msg tspan.big { font-family: var(--font-display); font-size: 22px; fill: var(--text); }
+
+.tooltip {
+  position: absolute; pointer-events: none; z-index: 5;
+  background: var(--text); color: var(--bg); border-radius: 8px; padding: 6px 10px;
+  font-size: 13px; line-height: 1.3; white-space: nowrap; box-shadow: var(--shadow);
+  transform: translate(-50%, calc(-100% - 12px)); opacity: 0; transition: opacity .12s;
+}
+.tooltip.show { opacity: 1; }
+.tooltip small { display: block; opacity: .7; font-size: 11px; }
+
+.float {
+  position: absolute; z-index: 4; pointer-events: none;
+  font-weight: 700; font-size: 14px; padding: 3px 9px; border-radius: 999px;
+  transform: translate(-50%, -50%); white-space: nowrap;
+  animation: floatUp 1.6s ease-out forwards;
+}
+.float.add { background: var(--accent); color: var(--on-accent); }
+.float.done { background: var(--good); color: var(--bg); animation-name: floatDown; }
+@keyframes floatUp {
+  0% { opacity: 0; margin-top: 6px; }
+  15% { opacity: 1; }
+  100% { opacity: 0; margin-top: -54px; }
+}
+@keyframes floatDown {
+  0% { opacity: 0; margin-top: -6px; }
+  15% { opacity: 1; }
+  100% { opacity: 0; margin-top: 48px; }
+}
+
+.scope-log { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+.scope-log .up { color: var(--accent); font-weight: 600; }
+.scope-log .down { color: var(--good); font-weight: 600; }
+
+/* ---------- pace ---------- */
+.pace {
+  margin-top: 16px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 10px; align-items: center;
+}
+.pace-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; font-size: 14px; color: var(--muted); }
+.num {
+  width: 64px; text-align: center; padding: 5px 6px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg); font-weight: 600;
+}
+.days { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.day {
+  width: 38px; padding: 5px 0; border-radius: 8px; border: 1px solid var(--border);
+  background: transparent; font-size: 12px; font-weight: 600; color: var(--faint);
+}
+.day.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }

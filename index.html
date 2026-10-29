@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="See how much time your commitments really take: a tank of work you drain by finishing tasks.">
+  <title>Do Date</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&display=swap">
+  <script>
+    // Apply a saved light/dark choice before first paint to avoid a flash.
+    try {
+      const t = localStorage.getItem('dodate.theme');
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <script type="module" src="/src/main.js"></script>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <span class="brand">Do Date</span>
+    <input id="projectName" class="project-name" aria-label="Project name" spellcheck="false">
+    <button id="settingsBtn" class="btn">Settings</button>
+  </header>
+
+  <main class="layout">
+    <section class="tank-col" aria-label="Time tank">
+      <div class="stats">
+        <div class="stat-big" id="statLeft">0m</div>
+        <div class="stat-label" id="statLabel">left in the tank</div>
+        <div class="stat-sub" id="statSub"></div>
+        <div class="finish" id="statFinish"></div>
+      </div>
+
+      <div class="tank-wrap" id="tankWrap">
+        <!-- Inner geometry (x 40, y 20, 240 × 470) must match G in src/ui/tank.js -->
+        <svg id="tank" viewBox="0 0 320 510" role="img" aria-label="Tank of remaining work">
+          <defs>
+            <clipPath id="tankClip"><rect x="40" y="20" width="240" height="470" rx="26"/></clipPath>
+            <pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect class="hatch-bg" width="9" height="9"/>
+              <line class="hatch-line" x1="0" y1="0" x2="0" y2="9" stroke-width="4"/>
+            </pattern>
+          </defs>
+          <g id="ticks"></g>
+          <rect class="tank-back" x="40" y="20" width="240" height="470" rx="26"/>
+          <g clip-path="url(#tankClip)">
+            <g id="ghostLayer"></g>
+            <g id="segLayer"></g>
+            <g id="waveLayer"></g>
+            <g id="labelLayer"></g>
+            <rect class="tank-sheen" x="54" y="34" width="9" height="420" rx="4.5"/>
+          </g>
+          <rect class="tank-glass" x="40" y="20" width="240" height="470" rx="26"/>
+          <line class="tank-rim" x1="30" y1="20" x2="290" y2="20"/>
+          <text id="tankMsg" class="tank-msg" x="160" y="250"></text>
+        </svg>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+
+      <div class="scope-log" id="scopeLog"></div>
+
+      <div class="pace">
+        <div class="pace-row">
+          I can put in
+          <input id="hoursPerDay" class="num" type="number" min="0" max="24" step="0.25" aria-label="Hours per day">
+          hours a day on
+        </div>
+        <div class="days" id="workDays" role="group" aria-label="Work days"></div>
+      </div>
+    </section>
+
+    <section class="list-col" aria-label="Songs and tasks">
+      <div class="banner" id="sampleBanner" hidden>
+        <span>This is a sample album so you can see how it works. Play around, then start your own.</span>
+        <button class="btn primary" data-act="fresh">Start fresh</button>
+        <button class="btn ghost" data-act="keep">Keep it</button>
+      </div>
+      <div class="groups" id="groups"></div>
+      <div class="add-row">
+        <button class="btn" id="addTemplateGroup">+ Song from template</button>
+        <button class="btn" id="addGroup">+ Empty song</button>
+      </div>
+      <p class="hint">Type a task with its time and press <kbd>Enter</kbd>: <em>record vocals 30m</em>, <em>mix 1h30</em>, <em>master + 45 minutes</em>. Drag <span aria-hidden="true">⋮⋮</span> to reorder songs. Click a block in the tank to jump to it.</p>
+    </section>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Settings">
+  <div class="drawer-head">
+    <h2>Settings</h2>
+    <button class="icon" id="closeSettings" aria-label="Close settings">✕</button>
+  </div>
+
+  <div class="section">
+    <h3>Unknowns buffer</h3>
+    <p>Projects always grow: you'll find subtasks you didn't plan for. This adds a hatched layer on top of the tank so your finish date stays honest. Around 20% is a good start.</p>
+    <div class="range-row">
+      <input type="range" id="bufferPct" min="0" max="60" step="5" aria-label="Buffer percent">
+      <output id="bufferOut">0%</output>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Song template</h3>
+    <p>One task per line with its time. "+ Song from template" adds a new song with these tasks.</p>
+    <textarea id="templateText" spellcheck="false" aria-label="Song template"></textarea>
+  </div>
+
+  <div class="section">
+    <h3>Theme</h3>
+    <div class="theme-row" id="themeRow">
+      <button class="btn" data-theme-set="auto">Auto</button>
+      <button class="btn" data-theme-set="light">Light</button>
+      <button class="btn" data-theme-set="dark">Dark</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Your data</h3>
+    <p>Everything is saved in this browser only. Export now and then as a backup, or to move to another device.</p>
+    <div class="btn-row">
+      <button class="btn" id="exportBtn">Export JSON</button>
+      <button class="btn" id="importBtn">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Start over</h3>
+    <p>Removes every song and task. Your settings and template stay.</p>
+    <button class="btn danger" data-act="fresh">Clear everything</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span id="toastMsg"></span>
+  <button id="toastUndo" hidden>Undo</button>
+</div>
+</body>
+</html>
