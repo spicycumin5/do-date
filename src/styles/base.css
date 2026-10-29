@@ -29,6 +29,30 @@ button { cursor: pointer; }
 .project-name:hover { border-color: var(--border); }
 .project-name:focus { border-color: var(--accent); outline: none; background: var(--surface); }
 
+/* ---------- account ---------- */
+.account { display: flex; align-items: center; gap: 8px; flex: none; }
+.account[hidden] { display: none; }
+.account .btn { display: inline-flex; align-items: center; gap: 8px; }
+.g-mark { width: 16px; height: 16px; }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; object-fit: cover;
+  display: grid; place-items: center; background: var(--accent-soft); font-weight: 700; font-size: 13px;
+}
+.sync { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sync::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 6px; vertical-align: 1px; background: var(--good);
+}
+.sync-saving::before, .sync-loading::before { background: var(--accent); }
+.sync-offline::before { background: var(--faint); }
+.sync-error::before { background: var(--danger); }
+@media (max-width: 560px) {
+  .topbar { flex-wrap: wrap; }
+  .project-name { flex-basis: 100%; order: 3; }
+  .brand { margin-right: auto; }
+  .sync { display: none; }
+}
+
 /* ---------- buttons ---------- */
 .btn {
   border: 1px solid var(--border); background: var(--surface); border-radius: 10px;

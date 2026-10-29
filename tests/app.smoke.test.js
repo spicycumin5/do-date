@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 // Boots the real page in jsdom and drives a few core interactions end to end.
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
+
+// Run local-only: no Firebase in tests.
+vi.mock('../src/sync/config.js', () => ({ firebaseConfig: {}, cloudEnabled: false }));
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 

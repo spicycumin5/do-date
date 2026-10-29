@@ -33,15 +33,23 @@ src/
     theme.js          auto/light/dark
     toast.js          notifications with undo
     dom.js            small DOM helpers
+  sync/               optional Google sign-in + Firestore sync
   styles/             tokens.css (colors) + one stylesheet per area
 tests/                Vitest; app.smoke.test.js boots the real page in jsdom
 ```
 
 Data flow: UI handlers mutate `state` from `store.js`, then call `commit(opts)`. That saves to localStorage and notifies `main.js`, which re-renders stats and the tank (and the list/settings when `opts` asks for it).
 
-## Data
+## Data and accounts
 
-Everything is stored in the browser's localStorage under `dodate.v1`, so it is per-browser and per-device. Use Settings → Export JSON for backups or to move between devices.
+Signed out, everything is stored in the browser's localStorage under `dodate.v1`.
+
+Signing in with Google syncs that state to Firestore at `users/{uid}` (one document per user, live across devices). localStorage remains the local cache. On first sign-in an account with no data takes the browser's current data. Signing out clears the browser copy.
+
+- `src/sync/config.js`: Firebase web config (public by design). Empty `apiKey` = accounts off, and Firebase isn't loaded.
+- `src/sync/cloud.js`: auth + debounced upload + live listener.
+- `firestore.rules`: each user can only read/write their own document. Paste into Firebase console → Firestore → Rules.
+- Firebase console → Authentication → Settings → Authorized domains must include the deployed domain.
 
 ## Deploy (Vercel)
 
