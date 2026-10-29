@@ -1,0 +1,19 @@
+{
+  "name": "do-date",
+  "version": "1.0.0",
+  "private": true,
+  "description": "See how much time your commitments really take: a tank of work you drain by finishing tasks.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}
