@@ -12,6 +12,7 @@ export const DEFAULT_TEMPLATE = [
 ];
 
 const LOG_LIMIT = 2000;
+const SESSION_LIMIT = 200;
 const WEEK_MS = 7 * 864e5;
 
 export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
@@ -33,6 +34,8 @@ export function emptyState() {
     groups: [],
     template: DEFAULT_TEMPLATE.map(t => ({ ...t })),
     log: [],
+    session: null, // the work session in progress, if any
+    sessions: [], // finished sessions, oldest first
   };
 }
 
@@ -90,6 +93,8 @@ export function normalize(raw) {
       .map(t => ({ name: String(t.name), minutes: Math.max(1, Math.round(+t.minutes) || 30) }));
   }
   s.log = Array.isArray(raw.log) ? raw.log.filter(e => e && Number.isFinite(e.t) && Number.isFinite(e.d)) : [];
+  s.session = normalizeSession(raw.session, s.groups);
+  s.sessions = Array.isArray(raw.sessions) ? raw.sessions.map(normalizeEntry).filter(Boolean).slice(-SESSION_LIMIT) : [];
   return s;
 }
 
@@ -137,4 +142,92 @@ export function weeklyScope(log, now = Date.now()) {
     else if (e.kind === 'done') finished += e.d;
   }
   return { added, finished };
+}
+
+/* ---------- work sessions ---------- */
+
+const minutesOr = (v, fallback) => Math.max(1, Math.round(+v) || fallback);
+const taskSnap = t => ({ id: String(t.id ?? ''), name: String(t.name ?? ''), minutes: minutesOr(t.minutes, 30) });
+
+function normalizeSession(raw, groups) {
+  if (!raw || typeof raw !== 'object' || !Number.isFinite(raw.startedAt) || !Array.isArray(raw.taskIds)) return null;
+  const ids = new Set(groups.flatMap(g => g.tasks.map(t => t.id)));
+  return {
+    id: String(raw.id || uid()),
+    startedAt: raw.startedAt,
+    plannedMinutes: minutesOr(raw.plannedMinutes, 60),
+    intent: String(raw.intent ?? ''),
+    taskIds: raw.taskIds.filter(id => ids.has(id)),
+  };
+}
+
+function normalizeEntry(e) {
+  if (!e || typeof e !== 'object' || !Number.isFinite(e.startedAt) || !Number.isFinite(e.endedAt)) return null;
+  return {
+    id: String(e.id || uid()),
+    startedAt: e.startedAt,
+    endedAt: e.endedAt,
+    plannedMinutes: minutesOr(e.plannedMinutes, 60),
+    intent: String(e.intent ?? ''),
+    note: String(e.note ?? ''),
+    planned: (Array.isArray(e.planned) ? e.planned : []).filter(Boolean).map(t => ({ ...taskSnap(t), done: !!t.done })),
+    extra: (Array.isArray(e.extra) ? e.extra : []).filter(Boolean).map(taskSnap),
+  };
+}
+
+/** Open tasks in list order, taking each while it fits in `minutes` (always at least one, if any are open). */
+export function suggestTasks(state, minutes) {
+  const ids = [];
+  let sum = 0;
+  for (const g of state.groups) for (const t of g.tasks) {
+    if (t.done) continue;
+    if (ids.length && sum + t.minutes > minutes) return ids;
+    ids.push(t.id);
+    sum += t.minutes;
+  }
+  return ids;
+}
+
+export function startSession(state, { taskIds, plannedMinutes, intent = '' }, now = Date.now()) {
+  state.session = { id: uid(), startedAt: now, plannedMinutes: minutesOr(plannedMinutes, 60), intent: intent.trim(), taskIds: [...taskIds] };
+  return state.session;
+}
+
+/**
+ * Where the current session stands: its planned tasks (in list order), how many are done,
+ * and `extra` tasks that weren't planned but were finished since it started.
+ */
+export function sessionProgress(state, now = Date.now()) {
+  const s = state.session;
+  if (!s) return null;
+  const ids = new Set(s.taskIds);
+  const tasks = [], extra = [];
+  let plannedTotal = 0, doneMinutes = 0, done = 0;
+  for (const g of state.groups) for (const t of g.tasks) {
+    if (ids.has(t.id)) {
+      tasks.push(t);
+      plannedTotal += t.minutes;
+      if (t.done) { done++; doneMinutes += t.minutes; }
+    } else if (t.done && t.doneAt >= s.startedAt) {
+      extra.push(t);
+    }
+  }
+  const elapsed = Math.max(0, Math.floor((now - s.startedAt) / 60000));
+  return { tasks, extra, planned: tasks.length, done, plannedTotal, doneMinutes, elapsed, left: s.plannedMinutes - elapsed };
+}
+
+/** Files the current session into history with an optional note, and clears it. */
+export function endSession(state, note = '', now = Date.now()) {
+  const p = sessionProgress(state, now);
+  if (!p) return null;
+  const s = state.session;
+  const entry = {
+    id: s.id, startedAt: s.startedAt, endedAt: now, plannedMinutes: s.plannedMinutes, intent: s.intent, note: note.trim(),
+    planned: p.tasks.map(t => ({ ...taskSnap(t), done: t.done })),
+    extra: p.extra.map(taskSnap),
+  };
+  state.sessions.push(entry);
+  if (state.sessions.length > SESSION_LIMIT) state.sessions.splice(0, state.sessions.length - SESSION_LIMIT);
+  state.session = null;
+  return entry;
 }
