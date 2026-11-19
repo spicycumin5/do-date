@@ -78,4 +78,42 @@ describe('app', () => {
     await flush();
     expect(dur.value).toBe(original);
   });
+
+  it('plans a work session, tracks it, and reviews it', async () => {
+    $('[data-ses="plan"]').click();
+    expect($('#sessionSheet').hidden).toBe(false);
+    const picked = $$('.pick input:checked');
+    expect(picked.length).toBeGreaterThan(0);
+    const n = picked.length;
+    expect($('#sesFit').textContent).toMatch(/picked/);
+
+    $('#sesIntent').value = 'Get the opener tracked';
+    $('[data-ses="start"]').click();
+    await flush();
+    expect($('#sessionSheet').hidden).toBe(true);
+    expect($('#sessionBar').textContent).toMatch('Get the opener tracked');
+    expect($('#sessionBar').textContent).toMatch(`0 of ${n}`);
+    expect($$('#segLayer .seg.planned')).toHaveLength(n);
+    expect($$('.task.planned')).toHaveLength(n);
+
+    const box = $('.task.planned:not(.done) input[type=checkbox]');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+    expect($('#sessionBar').textContent).toMatch(`1 of ${n}`);
+
+    $('[data-ses="end"]').click();
+    expect($$('.review-list li')).toHaveLength(n);
+    expect($$('.review-list li.done')).toHaveLength(1);
+    $('#sesNote').value = 'Vocals next';
+    $('[data-ses="save"]').click();
+    await flush();
+    expect($('[data-ses="plan"]')).not.toBeNull();
+    expect($$('.task.planned')).toHaveLength(0);
+    expect($('#historySection').hidden).toBe(false);
+    const saved = JSON.parse(localStorage.getItem('dodate.v1'));
+    expect(saved.session).toBeNull();
+    expect(saved.sessions).toHaveLength(1);
+    expect(saved.sessions[0]).toMatchObject({ intent: 'Get the opener tracked', note: 'Vocals next' });
+  });
 });

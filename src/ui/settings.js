@@ -131,6 +131,7 @@ export function initSettings() {
     const snap = snapshot();
     state.groups = [];
     state.log = [];
+    state.session = null;
     state.sample = false;
     closeDrawer();
     commit({ list: true, settings: true });

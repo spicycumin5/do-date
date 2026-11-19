@@ -64,6 +64,8 @@
 
       <div class="scope-log" id="scopeLog"></div>
 
+      <div class="session-bar" id="sessionBar" aria-live="polite"></div>
+
       <div class="pace">
         <div class="pace-row">
           I can put in
@@ -121,6 +123,11 @@
     </div>
   </div>
 
+  <div class="section" id="historySection" hidden>
+    <h3>Recent sessions</h3>
+    <ul class="history" id="sessionHistory"></ul>
+  </div>
+
   <div class="section">
     <h3>Your data</h3>
     <p>Everything is saved in this browser only. Export now and then as a backup, or to move to another device.</p>
@@ -137,6 +144,10 @@
     <button class="btn danger" data-act="fresh">Clear everything</button>
   </div>
 </aside>
+
+<div class="sheet-wrap" id="sessionSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" id="sessionSheetBody"></div>
+</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
   <span id="toastMsg"></span>

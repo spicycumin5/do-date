@@ -7,10 +7,11 @@ import { PALETTE, createGroup, createTask, groupTotals } from '../state/model.js
 import { state, commit, snapshot, logEvent, findTask, findGroup } from '../state/store.js';
 
 const groupsEl = () => $('#groups');
+let planned = new Set(); // task ids in the current work session
 
 function taskHTML(t) {
   return `
-    <li class="task${t.done ? ' done' : ''}" data-tid="${t.id}">
+    <li class="task${t.done ? ' done' : ''}${planned.has(t.id) ? ' planned' : ''}" data-tid="${t.id}"${planned.has(t.id) ? ' title="Planned for this session"' : ''}>
       <label class="check"><input type="checkbox" data-act="toggle" ${t.done ? 'checked' : ''} aria-label="Mark done"><span></span></label>
       <input class="t-name" data-field="tname" value="${esc(t.name)}" aria-label="Task name" spellcheck="false">
       <input class="t-dur" data-field="tdur" value="${fmt(t.minutes)}" aria-label="Time estimate" spellcheck="false">
@@ -44,6 +45,7 @@ function groupHTML(g) {
 
 export function renderList(s, focusQuick) {
   const el = groupsEl();
+  planned = new Set(s.session?.taskIds);
   el.innerHTML = s.groups.length
     ? s.groups.map(groupHTML).join('')
     : '<div class="empty"><h3>No songs yet</h3>Add a song, then list everything it still needs, with a time for each.</div>';

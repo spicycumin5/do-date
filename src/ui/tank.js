@@ -28,6 +28,7 @@ function layout(state) {
   const items = [];
   if (T.capacity <= 0) return { T, items, liquidTop: G.bottom, sc: 0 };
   const sc = G.h / T.capacity;
+  const planned = new Set(state.session?.taskIds);
   const liquidTop = G.bottom - (T.remaining + T.buffer) * sc;
   let y = liquidTop;
 
@@ -43,7 +44,7 @@ function layout(state) {
     for (const t of g.tasks) {
       if (t.done) continue;
       const h = t.minutes * sc;
-      items.push({ key: t.id, kind: 'task', y, h, color: g.color, alt: i++ % 2 === 1, tid: t.id });
+      items.push({ key: t.id, kind: 'task', y, h, color: g.color, alt: i++ % 2 === 1, tid: t.id, planned: planned.has(t.id) });
       y += h;
       rem += t.minutes;
     }
@@ -85,6 +86,7 @@ function draw(it) {
     el.setAttribute('height', h);
     el.setAttribute('fill', it.data.color);
     el.setAttribute('fill-opacity', it.data.alt ? 0.84 : 1);
+    el.classList.toggle('planned', !!it.data.planned);
   } else if (it.kind === 'buffer' || it.kind === 'ghost') {
     const r = el.firstChild, t = el.lastChild;
     r.setAttribute('y', y);
@@ -149,6 +151,8 @@ export function renderTank(state, float) {
     it.remove = true;
   }
 
+  // During a session, blocks outside the plan fade back so the planned ones stand out.
+  $('#tank').classList.toggle('in-session', !!state.session?.taskIds.length);
   renderTicks(L);
   renderMessage(L.T);
 

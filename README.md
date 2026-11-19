@@ -29,6 +29,7 @@ src/
     tank.js           animated SVG tank, tooltips, +/- markers
     list.js           song cards, tasks, quick-add, drag to reorder
     stats.js          headline numbers, finish date, weekly scope line
+    session.js        work sessions: plan what to clear, countdown, end-of-session review + history
     settings.js       project name, pace, settings drawer, import/export
     theme.js          auto/light/dark
     toast.js          notifications with undo
