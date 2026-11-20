@@ -22,12 +22,13 @@ function wavePath(closed) {
   return closed ? d + ` V9 H${x0} Z` : d;
 }
 
-/** Target layout, top to bottom: done (ghost), buffer, then each song's open tasks in list order. */
+/** Target layout, top to bottom: done (ghost), buffer, then each card's open tasks in list order. */
 function layout(state) {
   const T = totals(state);
   const items = [];
   if (T.capacity <= 0) return { T, items, liquidTop: G.bottom, sc: 0 };
   const sc = G.h / T.capacity;
+  const planned = new Set(state.session?.taskIds);
   const liquidTop = G.bottom - (T.remaining + T.buffer) * sc;
   let y = liquidTop;
 
@@ -43,7 +44,7 @@ function layout(state) {
     for (const t of g.tasks) {
       if (t.done) continue;
       const h = t.minutes * sc;
-      items.push({ key: t.id, kind: 'task', y, h, color: g.color, alt: i++ % 2 === 1, tid: t.id });
+      items.push({ key: t.id, kind: 'task', y, h, color: g.color, alt: i++ % 2 === 1, tid: t.id, planned: planned.has(t.id) });
       y += h;
       rem += t.minutes;
     }
@@ -85,6 +86,7 @@ function draw(it) {
     el.setAttribute('height', h);
     el.setAttribute('fill', it.data.color);
     el.setAttribute('fill-opacity', it.data.alt ? 0.84 : 1);
+    el.classList.toggle('planned', !!it.data.planned);
   } else if (it.kind === 'buffer' || it.kind === 'ghost') {
     const r = el.firstChild, t = el.lastChild;
     r.setAttribute('y', y);
@@ -149,8 +151,10 @@ export function renderTank(state, float) {
     it.remove = true;
   }
 
+  // During a session, blocks outside the plan fade back so the planned ones stand out.
+  $('#tank').classList.toggle('in-session', !!state.session?.taskIds.length);
   renderTicks(L);
-  renderMessage(L.T);
+  renderMessage(L.T, state.project.unit);
 
   animStart = performance.now();
   animDur = reduceMotion.matches ? 0 : pour ? POUR_MS : MOVE_MS;
@@ -176,9 +180,9 @@ function renderTicks(L) {
   }
 }
 
-function renderMessage(T) {
+function renderMessage(T, unit) {
   const msg = $('#tankMsg');
-  if (T.total === 0) msg.innerHTML = '<tspan class="big" x="160" dy="0">Empty tank</tspan><tspan x="160" dy="26">Add a song and some tasks</tspan><tspan x="160" dy="20">to fill it with work.</tspan>';
+  if (T.total === 0) msg.innerHTML = `<tspan class="big" x="160" dy="0">Empty tank</tspan><tspan x="160" dy="26">Add a ${esc(unit)} and some tasks</tspan><tspan x="160" dy="20">to fill it with work.</tspan>`;
   else if (T.remaining === 0) msg.innerHTML = '<tspan class="big" x="160" dy="0">Drained.</tspan><tspan x="160" dy="26">Every task is done.</tspan>';
   else msg.textContent = '';
 }

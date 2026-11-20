@@ -1,16 +1,19 @@
-// Song cards and their tasks: rendering, inline editing, quick-add, deletes and drag-to-reorder.
+// Cards (songs, pieces, chapters…) and their tasks: rendering, inline editing, quick-add, deletes and drag-to-reorder.
 
 import { $, $$, esc, scrollBehavior } from './dom.js';
 import { toast } from './toast.js';
 import { fmt, parseDuration, parseQuick } from '../lib/duration.js';
-import { PALETTE, createGroup, createTask, groupTotals } from '../state/model.js';
+import { PALETTE, createGroup, createTask, groupTotals, unitWords, kindOf } from '../state/model.js';
 import { state, commit, snapshot, logEvent, findTask, findGroup } from '../state/store.js';
 
 const groupsEl = () => $('#groups');
+let planned = new Set(); // task ids in the current work session
+let words = { one: 'song', One: 'Song', many: 'songs', Many: 'Songs' };
+let example = 'record vocals 30m';
 
 function taskHTML(t) {
   return `
-    <li class="task${t.done ? ' done' : ''}" data-tid="${t.id}">
+    <li class="task${t.done ? ' done' : ''}${planned.has(t.id) ? ' planned' : ''}" data-tid="${t.id}"${planned.has(t.id) ? ' title="Planned for this session"' : ''}>
       <label class="check"><input type="checkbox" data-act="toggle" ${t.done ? 'checked' : ''} aria-label="Mark done"><span></span></label>
       <input class="t-name" data-field="tname" value="${esc(t.name)}" aria-label="Task name" spellcheck="false">
       <input class="t-dur" data-field="tdur" value="${fmt(t.minutes)}" aria-label="Time estimate" spellcheck="false">
@@ -29,26 +32,40 @@ function groupHTML(g) {
       <header class="g-head">
         <span class="handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
         <button class="swatch" data-act="color" aria-label="Change color" title="Change color"></button>
-        <input class="g-name" data-field="gname" value="${esc(g.name)}" aria-label="Song name" spellcheck="false">
+        <input class="g-name" data-field="gname" value="${esc(g.name)}" aria-label="${words.One} name" spellcheck="false">
         <span class="g-meta">${meta}</span>
         <button class="icon" data-act="collapse" aria-label="${g.collapsed ? 'Expand' : 'Collapse'}"><span class="chev">▾</span></button>
-        <button class="icon del" data-act="delgroup" aria-label="Delete song">✕</button>
+        <button class="icon del" data-act="delgroup" aria-label="Delete ${words.one}">✕</button>
       </header>
       <div class="g-bar"><span style="width:${pct.toFixed(1)}%"></span></div>
       <ul class="tasks">${ordered.map(taskHTML).join('')}</ul>
       <div class="quick-wrap">
-        <input class="quick" data-gid="${g.id}" placeholder="Add a task… e.g. record vocals 30m" aria-label="Add a task to ${esc(g.name)}" spellcheck="false">
+        <input class="quick" data-gid="${g.id}" placeholder="Add a task… e.g. ${esc(example)}" aria-label="Add a task to ${esc(g.name)}" spellcheck="false">
       </div>
     </article>`;
 }
 
 export function renderList(s, focusQuick) {
   const el = groupsEl();
+  planned = new Set(s.session?.taskIds);
+  words = unitWords(s);
+  example = kindOf(s).example;
   el.innerHTML = s.groups.length
     ? s.groups.map(groupHTML).join('')
-    : '<div class="empty"><h3>No songs yet</h3>Add a song, then list everything it still needs, with a time for each.</div>';
+    : `<div class="empty"><h3>No ${esc(words.many)} yet</h3>Add a ${esc(words.one)}, then list everything it still needs, with a time for each.</div>`;
+  renderVocab(s);
   $('#sampleBanner').hidden = !s.sample;
   if (focusQuick) el.querySelector(`.quick[data-gid="${focusQuick}"]`)?.focus();
+}
+
+function renderVocab(s) {
+  const k = kindOf(s);
+  const [a] = k.template;
+  $('#listCol').setAttribute('aria-label', `${words.Many} and tasks`);
+  $('#addTemplateGroup').textContent = `+ ${words.One} from template`;
+  $('#addTemplateGroup').disabled = !s.template.length;
+  $('#addGroup').textContent = `+ Empty ${words.one}`;
+  $('#listHint').innerHTML = `Type a task with its time and press <kbd>Enter</kbd>: <em>${esc(k.example)}</em>, <em>${esc((a?.name || 'review').toLowerCase())} 1h30</em>, <em>tidy up + 45 minutes</em>. Drag <span aria-hidden="true">⋮⋮</span> to reorder ${esc(words.many)}. Click a block in the tank to jump to it.`;
 }
 
 /** Scrolls to a task's row (expanding its song if needed) and flashes it. */
@@ -69,7 +86,7 @@ export function revealTask(tid) {
 
 function addGroup(fromTemplate) {
   const tasks = fromTemplate ? state.template.map(t => createTask(t.name, t.minutes)) : [];
-  const g = createGroup(state, `Song ${state.groups.length + 1}`, tasks);
+  const g = createGroup(state, `${words.One} ${state.groups.length + 1}`, tasks);
   state.groups.push(g);
   const added = tasks.reduce((a, t) => a + t.minutes, 0);
   if (added) logEvent('add', added);
