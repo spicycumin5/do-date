@@ -56,7 +56,7 @@ describe('app', () => {
   });
 
   it('persists to localStorage', () => {
-    const saved = JSON.parse(localStorage.getItem('dodate.v1'));
+    const saved = JSON.parse(localStorage.getItem('dodate.v1')).projects[0];
     expect(saved.groups[0].tasks.some(t => t.name === 'record harmonies')).toBe(true);
   });
 
@@ -111,9 +111,82 @@ describe('app', () => {
     expect($('[data-ses="plan"]')).not.toBeNull();
     expect($$('.task.planned')).toHaveLength(0);
     expect($('#historySection').hidden).toBe(false);
-    const saved = JSON.parse(localStorage.getItem('dodate.v1'));
+    const saved = JSON.parse(localStorage.getItem('dodate.v1')).projects[0];
     expect(saved.session).toBeNull();
     expect(saved.sessions).toHaveLength(1);
     expect(saved.sessions[0]).toMatchObject({ intent: 'Get the opener tracked', note: 'Vocals next' });
+  });
+
+  it('puts the session button above the tank, where it is always in view', () => {
+    const bar = $('#sessionBar'), tank = $('#tankWrap');
+    expect(bar.compareDocumentPosition(tank) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('creates an art project, switches between projects, and keeps one session at a time', async () => {
+    $('[data-ses="plan"]').click();
+    $('[data-ses="start"]').click();
+    await flush();
+    const album = $('#projectName').value;
+
+    $('#projectMenuBtn').click();
+    expect($('#projectMenu').hidden).toBe(false);
+    expect($$('.pm-item')).toHaveLength(1);
+    $('[data-pm="new"]').click();
+    expect($('#projectSheet').hidden).toBe(false);
+    $('.kind[data-kind="art"]').click();
+    $('#newProjName').value = 'Zine';
+    $('[data-pm="create"]').click();
+    await flush();
+
+    expect($('#projectName').value).toBe('Zine');
+    expect($$('.group')).toHaveLength(0);
+    expect($('#addTemplateGroup').textContent).toMatch('Piece from template');
+    expect($('#sessionBar').textContent).toMatch(`running in ${album}`);
+
+    $('#addTemplateGroup').click();
+    await flush();
+    expect($('.group .g-name').value).toBe('Piece 1');
+    expect($('.group .quick').placeholder).toMatch('line art');
+
+    $('#unitName').value = 'Spread';
+    $('#unitName').dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+    expect($('#addGroup').textContent).toBe('+ Empty spread');
+
+    $('[data-ses="goto"]').click();
+    await flush();
+    expect($('#projectName').value).toBe(album);
+    expect($$('.group')).toHaveLength(4);
+    expect($('#sessionBar [data-ses="end"]')).not.toBeNull();
+
+    const saved = JSON.parse(localStorage.getItem('dodate.v1'));
+    expect(saved.projects.map(p => p.project.name)).toEqual([album, 'Zine']);
+    expect(saved.projects[1].project).toMatchObject({ kind: 'art', unit: 'spread' });
+
+    // delete the album, then undo
+    $('#deleteProject').click();
+    await flush();
+    expect($('#projectName').value).toBe('Zine');
+    expect($('#deleteProject').disabled).toBe(true);
+    $('#toastUndo').click();
+    await flush();
+    expect(JSON.parse(localStorage.getItem('dodate.v1')).projects).toHaveLength(2);
+  });
+
+  it('shows every project together and opens one from there', async () => {
+    $('#projectMenuBtn').click();
+    $('[data-pm="all"]').click();
+    expect($('#overview').hidden).toBe(false);
+    expect($('#workspace').hidden).toBe(true);
+    const cards = $$('.ov-card[data-pid]');
+    expect(cards).toHaveLength(2);
+    expect(cards[0].textContent).toMatch('Session running');
+    expect(cards[1].textContent).toMatch('Zine');
+    expect($('#ovSummary').textContent).toMatch('left across 2 projects');
+
+    cards[1].click();
+    await flush();
+    expect($('#overview').hidden).toBe(true);
+    expect($('#projectName').value).toBe('Zine');
   });
 });

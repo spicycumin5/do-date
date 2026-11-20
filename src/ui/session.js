@@ -3,8 +3,9 @@
 import { $, $$, esc } from './dom.js';
 import { toast } from './toast.js';
 import { fmt, parseDuration } from '../lib/duration.js';
-import { suggestTasks, startSession, sessionProgress, endSession } from '../state/model.js';
-import { state, commit, snapshot } from '../state/store.js';
+import { suggestTasks, startSession, sessionProgress, endSession, kindOf } from '../state/model.js';
+import { workspace, state, commit, snapshot } from '../state/store.js';
+import { goToProject } from './projects.js';
 
 const TICK_MS = 30000;
 const LENGTH_CHIPS = [25, 60, 90, 120];
@@ -28,7 +29,16 @@ function clockText(p) {
 export function renderSession(s) {
   const bar = $('#sessionBar');
   const p = sessionProgress(s);
-  if (!p) {
+  // One session at a time, across all projects.
+  const elsewhere = !p && workspace.projects.find(x => x !== s && x.session);
+  if (elsewhere) {
+    const ep = sessionProgress(elsewhere);
+    bar.innerHTML = `
+      <div class="session-elsewhere">
+        <span>A session is running in <b>${esc(elsewhere.project.name || 'another project')}</b> · ${clockText(ep)}</span>
+        <button class="btn" data-ses="goto" data-pid="${esc(elsewhere.id)}">Go to it</button>
+      </div>`;
+  } else if (!p) {
     bar.innerHTML = `
       <button class="session-start" data-ses="plan">
         <span class="ss-title">Start a work session</span>
@@ -134,7 +144,7 @@ function renderPlan() {
     <div class="pick-list">
       ${groups.map(({ g, open }) => `
         <div class="pick-group" style="--c:${esc(g.color)}">
-          <div class="pick-song">${esc(g.name || 'Untitled')}</div>
+          <div class="pick-group-name">${esc(g.name || 'Untitled')}</div>
           ${open.map(t => `
             <label class="pick">
               <input type="checkbox" value="${t.id}" data-min="${t.minutes}"${picked.has(t.id) ? ' checked' : ''}>
@@ -147,7 +157,7 @@ function renderPlan() {
     <div class="fit" id="sesFit" aria-live="polite"></div>
 
     <label class="field-label" for="sesIntent">What does done look like? <span class="opt">optional</span></label>
-    <input id="sesIntent" class="text-input" maxlength="140" placeholder="e.g. Opener vocals tracked and comped" autocomplete="off">
+    <input id="sesIntent" class="text-input" maxlength="140" placeholder="e.g. ${esc(kindOf(state).goal)}" autocomplete="off">
 
     <div class="sheet-actions">
       <button class="btn ghost" data-ses="cancel">Cancel</button>
@@ -256,6 +266,7 @@ export function initSession() {
       case 'cancel': return closeSheet();
       case 'start': return start();
       case 'save': return save();
+      case 'goto': return goToProject(btn.dataset.pid);
     }
   });
 

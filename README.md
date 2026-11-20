@@ -1,6 +1,6 @@
 # Do Date
 
-See how much time your commitments really take. Every task adds its time to a tank; finishing tasks drains it. Set how many hours a day you can work and it projects a finish date that moves as the project grows or shrinks.
+See how much time your commitments really take. Every task adds its time to a tank; finishing tasks drains it. Keep as many projects as you like (an album, an art series, a book, anything else), each with its own tank, pace, template and work sessions. Set how many hours a day you can work and it projects a finish date that moves as the project grows or shrinks.
 
 ## Develop
 
@@ -23,11 +23,13 @@ src/
     duration.js       parse/format "30m", "1h30", "record vocals + 45 minutes"
     schedule.js       finish-date projection from hours/day and work days
   state/
-    model.js          data shape, defaults, sample album, validation, totals
-    store.js          the live state, localStorage persistence, commit/subscribe
+    model.js          project kinds, data shape, defaults, sample album, validation, totals
+    store.js          the workspace (all projects) + `state` (the active one), persistence, commit/subscribe
   ui/                 one module per area of the page
     tank.js           animated SVG tank, tooltips, +/- markers
-    list.js           song cards, tasks, quick-add, drag to reorder
+    list.js           cards (songs, pieces, chapters…), tasks, quick-add, drag to reorder
+    projects.js       project switcher, new-project sheet, delete project
+    overview.js       "All projects": totals, hours per weekday across projects, a card per project
     stats.js          headline numbers, finish date, weekly scope line
     session.js        work sessions: plan what to clear, countdown, end-of-session review + history
     settings.js       project name, pace, settings drawer, import/export
@@ -39,13 +41,15 @@ src/
 tests/                Vitest; app.smoke.test.js boots the real page in jsdom
 ```
 
-Data flow: UI handlers mutate `state` from `store.js`, then call `commit(opts)`. That saves to localStorage and notifies `main.js`, which re-renders stats and the tank (and the list/settings when `opts` asks for it).
+Saved data is a workspace: `{ version: 2, activeId, projects: [...] }`. Each project has the version-1 shape (`project`, `groups`, `template`, `log`, `session`, `sessions`) plus an `id`; `project.kind` (music / art / writing / other) picks starting defaults and `project.unit` is what one card is called. Version-1 saves and exports load as a one-project workspace. Only one work session runs at a time across projects.
+
+Data flow: UI handlers mutate `state` (the active project) from `store.js`, then call `commit(opts)`. That saves to localStorage and notifies `main.js`, which re-renders stats and the tank (and the list/settings when `opts` asks for it).
 
 ## Data and accounts
 
 Signed out, everything is stored in the browser's localStorage under `dodate.v1`.
 
-Signing in with Google syncs that state to Firestore at `users/{uid}` (one document per user, live across devices). localStorage remains the local cache. On first sign-in an account with no data takes the browser's current data. Signing out clears the browser copy.
+Signing in with Google syncs the whole workspace to Firestore at `users/{uid}` (one document per user, live across devices). localStorage remains the local cache. On first sign-in an account with no data takes the browser's current data. Signing out clears the browser copy.
 
 - `src/sync/config.js`: Firebase web config (public by design). Empty `apiKey` = accounts off, and Firebase isn't loaded.
 - `src/sync/cloud.js`: auth + debounced upload + live listener.

@@ -23,11 +23,16 @@
   <header class="topbar">
     <span class="brand">Do Date</span>
     <input id="projectName" class="project-name" aria-label="Project name" spellcheck="false">
+    <h1 id="ovTitle" class="ov-title" tabindex="-1">All projects</h1>
+    <div class="proj-switch">
+      <button id="projectMenuBtn" class="btn" aria-haspopup="true" aria-expanded="false" aria-controls="projectMenu">Projects <span class="pm-count"></span> <span aria-hidden="true">▾</span></button>
+      <div class="proj-menu" id="projectMenu" hidden></div>
+    </div>
     <div class="account" id="account" hidden></div>
     <button id="settingsBtn" class="btn">Settings</button>
   </header>
 
-  <main class="layout">
+  <main class="layout" id="workspace">
     <section class="tank-col" aria-label="Time tank">
       <div class="stats">
         <div class="stat-big" id="statLeft">0m</div>
@@ -35,6 +40,8 @@
         <div class="stat-sub" id="statSub"></div>
         <div class="finish" id="statFinish"></div>
       </div>
+
+      <div class="session-bar" id="sessionBar" aria-live="polite"></div>
 
       <div class="tank-wrap" id="tankWrap">
         <!-- Inner geometry (x 40, y 20, 240 × 470) must match G in src/ui/tank.js -->
@@ -64,8 +71,6 @@
 
       <div class="scope-log" id="scopeLog"></div>
 
-      <div class="session-bar" id="sessionBar" aria-live="polite"></div>
-
       <div class="pace">
         <div class="pace-row">
           I can put in
@@ -76,7 +81,7 @@
       </div>
     </section>
 
-    <section class="list-col" aria-label="Songs and tasks">
+    <section class="list-col" id="listCol" aria-label="Tasks">
       <div class="banner" id="sampleBanner" hidden>
         <span>This is a sample album so you can see how it works. Play around, then start your own.</span>
         <button class="btn primary" data-act="fresh">Start fresh</button>
@@ -87,8 +92,13 @@
         <button class="btn" id="addTemplateGroup">+ Song from template</button>
         <button class="btn" id="addGroup">+ Empty song</button>
       </div>
-      <p class="hint">Type a task with its time and press <kbd>Enter</kbd>: <em>record vocals 30m</em>, <em>mix 1h30</em>, <em>master + 45 minutes</em>. Drag <span aria-hidden="true">⋮⋮</span> to reorder songs. Click a block in the tank to jump to it.</p>
+      <p class="hint" id="listHint"></p>
     </section>
+  </main>
+
+  <main class="overview" id="overview" hidden aria-labelledby="ovTitle">
+    <section class="ov-summary" id="ovSummary" aria-label="Across all projects"></section>
+    <div class="ov-grid" id="ovGrid"></div>
   </main>
 </div>
 
@@ -97,6 +107,12 @@
   <div class="drawer-head">
     <h2>Settings</h2>
     <button class="icon" id="closeSettings" aria-label="Close settings">✕</button>
+  </div>
+
+  <div class="section">
+    <h3>What's in this project called?</h3>
+    <p>The name for one card in your list: a song, a piece, a chapter, a scene…</p>
+    <input id="unitName" class="text-input" maxlength="24" spellcheck="false" autocomplete="off" aria-label="Name for one part of this project">
   </div>
 
   <div class="section">
@@ -109,9 +125,9 @@
   </div>
 
   <div class="section">
-    <h3>Song template</h3>
-    <p>One task per line with its time. "+ Song from template" adds a new song with these tasks.</p>
-    <textarea id="templateText" spellcheck="false" aria-label="Song template"></textarea>
+    <h3 id="templateTitle">Song template</h3>
+    <p id="templateHelp">One task per line with its time.</p>
+    <textarea id="templateText" spellcheck="false" aria-labelledby="templateTitle"></textarea>
   </div>
 
   <div class="section">
@@ -130,7 +146,7 @@
 
   <div class="section">
     <h3>Your data</h3>
-    <p>Everything is saved in this browser only. Export now and then as a backup, or to move to another device.</p>
+    <p>Everything is saved in this browser only. Export now and then as a backup, or to move to another device. The export holds all your projects.</p>
     <div class="btn-row">
       <button class="btn" id="exportBtn">Export JSON</button>
       <button class="btn" id="importBtn">Import JSON</button>
@@ -140,13 +156,20 @@
 
   <div class="section">
     <h3>Start over</h3>
-    <p>Removes every song and task. Your settings and template stay.</p>
-    <button class="btn danger" data-act="fresh">Clear everything</button>
+    <p id="freshHelp">Removes every task in this project. Your settings and template stay.</p>
+    <div class="btn-row">
+      <button class="btn danger" data-act="fresh">Clear this project</button>
+      <button class="btn danger" id="deleteProject">Delete this project</button>
+    </div>
   </div>
 </aside>
 
 <div class="sheet-wrap" id="sessionSheet" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" id="sessionSheetBody"></div>
+</div>
+
+<div class="sheet-wrap" id="projectSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="projectSheetTitle" id="projectSheetBody"></div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">

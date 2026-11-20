@@ -2,14 +2,46 @@
 
 export const PALETTE = ['#e8845c', '#e9b949', '#7fb77e', '#5fa8b8', '#8a8fe0', '#c97bb5', '#d9615f', '#a3a35a'];
 
-export const DEFAULT_TEMPLATE = [
-  { name: 'Write lyrics', minutes: 60 },
-  { name: 'Demo', minutes: 60 },
-  { name: 'Record instruments', minutes: 90 },
-  { name: 'Record vocals', minutes: 30 },
-  { name: 'Mix', minutes: 60 },
-  { name: 'Master', minutes: 30 },
-];
+const t = (name, minutes) => ({ name, minutes });
+
+/**
+ * Starting points for a new project. `unit` is what one card in the list is called; `example` and `goal` seed
+ * the quick-add and session-goal placeholders. Both, and the template, can be changed per project in settings.
+ */
+export const KINDS = {
+  music: {
+    label: 'Music', name: 'My album', unit: 'song', example: 'record vocals 30m', goal: 'Opener vocals tracked and comped',
+    template: [t('Write lyrics', 60), t('Demo', 60), t('Record instruments', 90), t('Record vocals', 30), t('Mix', 60), t('Master', 30)],
+  },
+  art: {
+    label: 'Art', name: 'My art project', unit: 'piece', example: 'line art 1h30', goal: 'Line art finished for the cover piece',
+    template: [t('Gather references', 30), t('Thumbnails', 45), t('Sketch', 60), t('Line art', 90), t('Color', 120), t('Final touches', 45)],
+  },
+  writing: {
+    label: 'Writing', name: 'My book', unit: 'chapter', example: 'first draft 2h', goal: 'Chapter three drafted, start to end',
+    template: [t('Outline', 30), t('First draft', 180), t('Revise', 120), t('Edit', 60)],
+  },
+  other: {
+    label: 'Something else', name: 'My project', unit: 'part', example: 'research 45m', goal: 'Research wrapped up and written down',
+    template: [t('Plan', 30), t('Do the work', 120), t('Review', 30)],
+  },
+};
+export const kindOf = p => KINDS[p.project.kind] || KINDS.other;
+export const DEFAULT_TEMPLATE = KINDS.music.template;
+
+/** "song" → "songs", "story" → "stories". Good enough for the one noun a user names their parts with. */
+export function plural(word) {
+  if (/[^aeiou]y$/i.test(word)) return word.slice(0, -1) + 'ies';
+  if (/(s|x|z|ch|sh)$/i.test(word)) return word + 'es';
+  return word + 's';
+}
+export const capitalize = w => w.charAt(0).toUpperCase() + w.slice(1);
+
+/** What a project's cards are called: { one: 'song', many: 'songs', One: 'Song', Many: 'Songs' }. */
+export function unitWords(state) {
+  const one = state.project.unit || 'part';
+  return { one, many: plural(one), One: capitalize(one), Many: capitalize(plural(one)) };
+}
 
 const LOG_LIMIT = 2000;
 const SESSION_LIMIT = 200;
@@ -26,21 +58,26 @@ export function createGroup(state, name, tasks = []) {
   return { id: uid(), name, color: nextColor(state), collapsed: false, tasks };
 }
 
-export function emptyState() {
+/**
+ * One project: its settings, its cards ("groups") of tasks, and its own work-session history.
+ * Everything below that takes `state` works on a single project.
+ */
+export function emptyProject(kind = 'music', name) {
+  const k = KINDS[kind] ? kind : 'other';
   return {
-    version: 1,
+    id: uid(),
     sample: false,
-    project: { name: 'My album', hoursPerDay: 2, workDays: [1, 2, 3, 4, 5, 6], bufferPct: 0 },
+    project: { name: name ?? KINDS[k].name, kind: k, unit: KINDS[k].unit, hoursPerDay: 2, workDays: [1, 2, 3, 4, 5, 6], bufferPct: 0 },
     groups: [],
-    template: DEFAULT_TEMPLATE.map(t => ({ ...t })),
+    template: KINDS[k].template.map(x => ({ ...x })),
     log: [],
     session: null, // the work session in progress, if any
     sessions: [], // finished sessions, oldest first
   };
 }
 
-export function sampleState() {
-  const s = emptyState();
+export function sampleProject() {
+  const s = emptyProject('music');
   s.sample = true;
   s.project.bufferPct = 20;
   const group = (name, color, tasks) => ({ id: uid(), name, color, collapsed: false, tasks });
@@ -63,13 +100,52 @@ export function sampleState() {
   return s;
 }
 
-/** Coerces untrusted data (storage, imported files) into a valid state, or null if it isn't one. */
-export function normalize(raw) {
+/* ---------- workspace: all of a user's projects ---------- */
+
+export function emptyWorkspace(kind = 'music') {
+  const p = emptyProject(kind);
+  return { version: 2, activeId: p.id, projects: [p] };
+}
+
+export function sampleWorkspace() {
+  const p = sampleProject();
+  return { version: 2, activeId: p.id, projects: [p] };
+}
+
+/**
+ * Coerces untrusted data (storage, imported files, the cloud) into a valid workspace, or null.
+ * A version-1 file (a single project at the top level) becomes a workspace holding that one project.
+ */
+export function normalizeWorkspace(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  let projects;
+  if (Array.isArray(raw.projects)) {
+    projects = raw.projects.map(normalizeProject).filter(Boolean);
+    const seen = new Set();
+    for (const p of projects) {
+      if (seen.has(p.id)) p.id = uid();
+      seen.add(p.id);
+    }
+  } else {
+    const one = normalizeProject(raw);
+    projects = one ? [one] : [];
+  }
+  if (!projects.length) return null;
+  const activeId = projects.some(p => p.id === raw.activeId) ? raw.activeId : projects[0].id;
+  return { version: 2, activeId, projects };
+}
+
+export const activeProject = w => w.projects.find(p => p.id === w.activeId) || w.projects[0];
+
+/** Coerces one untrusted project into a valid one, or null if it isn't one. */
+export function normalizeProject(raw) {
   if (!raw || typeof raw !== 'object' || !Array.isArray(raw.groups)) return null;
-  const s = emptyState();
   const p = raw.project || {};
+  const s = emptyProject(KINDS[p.kind] ? p.kind : 'music');
+  if (typeof raw.id === 'string' && raw.id) s.id = raw.id;
   s.sample = !!raw.sample;
   s.project.name = typeof p.name === 'string' ? p.name : s.project.name;
+  s.project.unit = typeof p.unit === 'string' && p.unit.trim() ? p.unit.trim().slice(0, 24) : s.project.unit;
   s.project.hoursPerDay = Number.isFinite(+p.hoursPerDay) ? Math.min(24, Math.max(0, +p.hoursPerDay)) : 2;
   s.project.workDays = Array.isArray(p.workDays) ? p.workDays.filter(d => Number.isInteger(d) && d >= 0 && d <= 6) : s.project.workDays;
   s.project.bufferPct = Number.isFinite(+p.bufferPct) ? Math.min(100, Math.max(0, +p.bufferPct)) : 0;
@@ -230,4 +306,33 @@ export function endSession(state, note = '', now = Date.now()) {
   if (state.sessions.length > SESSION_LIMIT) state.sessions.splice(0, state.sessions.length - SESSION_LIMIT);
   state.session = null;
   return entry;
+}
+
+/* ---------- all projects at once ---------- */
+
+/**
+ * Hours you've promised each weekday (index 0 = Sunday), summed over projects that still have work left.
+ * Finished or empty projects don't count: they no longer ask for your time.
+ */
+export function weekLoad(workspace) {
+  const days = [0, 0, 0, 0, 0, 0, 0];
+  for (const p of workspace.projects) {
+    const T = totals(p);
+    if (T.remaining + T.buffer <= 0) continue;
+    for (const d of p.project.workDays) days[d] += p.project.hoursPerDay;
+  }
+  return days;
+}
+
+/** Totals across every project: minutes left (with buffers), committed, done, and how many still have work. */
+export function workspaceTotals(workspace) {
+  let left = 0, total = 0, done = 0, active = 0;
+  for (const p of workspace.projects) {
+    const T = totals(p);
+    left += T.remaining + T.buffer;
+    total += T.total;
+    done += T.done;
+    if (T.remaining + T.buffer > 0) active++;
+  }
+  return { left, total, done, active };
 }

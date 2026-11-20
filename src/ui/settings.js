@@ -1,11 +1,11 @@
-// Project name, work pace (hours/day + work days), and the settings drawer.
+// Project name, work pace (hours/day + work days), and the settings drawer (all per project).
 
 import { $, $$ } from './dom.js';
 import { toast } from './toast.js';
 import { initTheme } from './theme.js';
 import { fmt, parseQuick } from '../lib/duration.js';
-import { normalize } from '../state/model.js';
-import { state, commit, replaceState, snapshot } from '../state/store.js';
+import { normalizeWorkspace, unitWords } from '../state/model.js';
+import { workspace, state, commit, replaceWorkspace, snapshot } from '../state/store.js';
 
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -39,10 +39,15 @@ export function renderSettings(s) {
   $('#bufferOut').textContent = s.project.bufferPct + '%';
   renderDays(s);
   renderTemplate(s);
+  const w = unitWords(s);
+  if (document.activeElement !== $('#unitName')) $('#unitName').value = s.project.unit;
+  $('#templateTitle').textContent = `${w.One} template`;
+  $('#templateHelp').textContent = `One task per line with its time. "+ ${w.One} from template" adds a new ${w.one} with these tasks.`;
+  $('#freshHelp').textContent = `Removes every ${w.one} and task in this project. Your settings and template stay.`;
 }
 
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(workspace, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `do-date-${new Date().toISOString().slice(0, 10)}.json`;
@@ -54,10 +59,10 @@ function exportJSON() {
 
 async function importJSON(file) {
   try {
-    const s = normalize(JSON.parse(await file.text()));
-    if (!s) throw new Error('not a Do Date export');
+    const w = normalizeWorkspace(JSON.parse(await file.text()));
+    if (!w) throw new Error('not a Do Date export');
     const snap = snapshot();
-    replaceState(s);
+    replaceWorkspace(w);
     closeDrawer();
     commit({ list: true, settings: true });
     toast('Imported', snap);
@@ -108,6 +113,16 @@ export function initSettings() {
     commit();
   });
 
+  const unit = $('#unitName');
+  unit.addEventListener('change', () => {
+    const v = unit.value.trim().toLowerCase().slice(0, 24);
+    if (!v) { unit.value = state.project.unit; return; }
+    unit.value = v;
+    state.project.unit = v;
+    commit({ list: true, settings: true });
+  });
+  unit.addEventListener('keydown', e => { if (e.key === 'Enter') unit.blur(); });
+
   $('#templateText').addEventListener('change', e => {
     state.template = e.target.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
       const q = parseQuick(l);
@@ -135,7 +150,7 @@ export function initSettings() {
     state.sample = false;
     closeDrawer();
     commit({ list: true, settings: true });
-    toast('Cleared. Add your first song.', snap);
+    toast(`Cleared. Add your first ${state.project.unit}.`, snap);
   }));
   $$('[data-act="keep"]').forEach(b => b.addEventListener('click', () => {
     state.sample = false;

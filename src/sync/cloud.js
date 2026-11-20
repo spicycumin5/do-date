@@ -1,12 +1,12 @@
-// Google sign-in + Firestore sync. One document per user at users/{uid} holding the whole state.
+// Google sign-in + Firestore sync. One document per user at users/{uid} holding the whole workspace (every project).
 // localStorage stays the local cache; this module mirrors it to the signed-in account.
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { firebaseConfig } from './config.js';
-import { emptyState, normalize } from '../state/model.js';
-import { state, commit, subscribe, replaceState } from '../state/store.js';
+import { emptyWorkspace, normalizeWorkspace } from '../state/model.js';
+import { workspace, commit, subscribe, replaceWorkspace } from '../state/store.js';
 
 const UPLOAD_DELAY_MS = 800;
 const PENDING_KEY = 'dodate.pending'; // set while this browser has edits the cloud hasn't seen
@@ -34,11 +34,11 @@ export function initCloud({ onStatus, onMessage }) {
   const report = status => onStatus({ user, status });
 
   function applyRemote(data) {
-    const s = normalize(data.state);
-    if (!s) return;
+    const w = normalizeWorkspace(data.state);
+    if (!w) return;
     lastRemoteAt = data.updatedAt || 0;
     applyingRemote = true;
-    replaceState(s);
+    replaceWorkspace(w);
     commit({ list: true, settings: true });
     applyingRemote = false;
   }
@@ -49,7 +49,7 @@ export function initCloud({ onStatus, onMessage }) {
     try {
       // Firestore rejects undefined values; a JSON round trip drops them.
       const updatedAt = Date.now();
-      await setDoc(ref, { state: JSON.parse(JSON.stringify(state)), updatedAt, clientId });
+      await setDoc(ref, { state: JSON.parse(JSON.stringify(workspace)), updatedAt, clientId });
       lastRemoteAt = updatedAt;
       setPending(false);
       report('saved');
@@ -138,7 +138,7 @@ export function initCloud({ onStatus, onMessage }) {
       await signOut(auth);
       setPending(false);
       // The data lives in the account now; don't leave it behind in this browser.
-      replaceState(emptyState());
+      replaceWorkspace(emptyWorkspace());
       commit({ list: true, settings: true });
       onMessage('Signed out. Your tank is saved to your account.');
     },
