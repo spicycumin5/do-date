@@ -33,6 +33,21 @@ describe('app', () => {
     expect($$('#segLayer rect[data-tid]').length).toBe(14);
   });
 
+  it('shows a suggested schedule and switches to a month', async () => {
+    expect($('#calendar').textContent).toMatch('Suggested schedule');
+    const chips = $$('#calendar .cal-chip[data-tid]');
+    expect(chips.length).toBeGreaterThan(0);
+    expect($$('#calendar .cal-day')).toHaveLength(7);
+
+    $('[data-cal-view="month"]').click();
+    expect($$('#calendar .cm-cell[data-day]').length).toBeGreaterThanOrEqual(28);
+    expect(localStorage.getItem('dodate.calView')).toBe('month');
+    $('[data-cal-nav="1"]').click();
+    expect($('[data-cal-nav="0"]').disabled).toBe(false);
+    $('[data-cal-view="week"]').click();
+    expect($$('#calendar .cal-day')).toHaveLength(7);
+  });
+
   it('quick-adds a task and grows the tank', async () => {
     const before = $('#statLeft').textContent;
     const quick = $('.group .quick');
