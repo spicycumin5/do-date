@@ -76,10 +76,20 @@ kbd {
 
 /* ---------- layout ---------- */
 .layout { display: grid; grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); gap: 36px; align-items: start; }
-.tank-col { position: sticky; top: 16px; }
+/* Two columns: the sticky tank spans both rows; the suggested schedule sits under the list. */
+.tank-col { position: sticky; top: 16px; grid-row: span 2; }
+.cal-col { grid-column: 2; }
+/* Wide screens: the suggested schedule gets its own column beside the tank and the list. */
+@media (min-width: 1280px) {
+  .tank-col { grid-row: auto; }
+  .app:has(.layout:not([hidden])) { max-width: 1560px; }
+  .layout { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) minmax(300px, 360px); gap: 32px; }
+  .cal-col { grid-column: auto; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+}
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); gap: 28px; }
-  .tank-col { position: static; }
+  .tank-col { position: static; grid-row: auto; }
+  .cal-col { grid-column: auto; }
   .project-name { font-size: 24px; }
 }
 

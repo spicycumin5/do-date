@@ -1,0 +1,73 @@
+/* Suggested schedule: week rows (or columns, when it spans the page) and a month grid. */
+
+.cal-col {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px; box-shadow: var(--shadow);
+}
+.cal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.cal-title h2 { font-family: var(--font-display); font-weight: 650; font-size: 20px; margin: 0; }
+.cal-title p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+
+.cal-views { display: inline-flex; flex: none; padding: 3px; border-radius: 10px; background: var(--surface-2); }
+.cal-view {
+  border: 0; background: transparent; border-radius: 7px; padding: 5px 10px;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+}
+.cal-view.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+
+.cal-nav { display: flex; align-items: center; gap: 4px; margin: 12px 0 10px; }
+.cal-range { flex: 1; text-align: center; font-weight: 650; font-size: 14px; }
+.cal-today { padding: 4px 10px; font-size: 13px; margin-left: 4px; }
+.cal-note { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 13px; }
+
+/* ---------- chips ---------- */
+.cal-chip {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; text-align: left;
+  padding: 5px 8px 5px 10px; border: 1px solid var(--border); border-left: 4px solid var(--c, var(--faint));
+  border-radius: 8px; background: var(--bg); font-size: 13px; line-height: 1.25; color: var(--text);
+}
+button.cal-chip:hover { border-color: var(--faint); border-left-color: var(--c); }
+.cc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-part { flex: none; font-size: 11px; color: var(--muted); }
+.cc-dur { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cal-chip.buffer {
+  border-left-color: var(--hatch-line); color: var(--muted);
+  background: repeating-linear-gradient(45deg, var(--hatch-bg) 0 4px, transparent 4px 8px), var(--bg);
+}
+
+/* ---------- day (week rows, month detail) ---------- */
+.cal-week { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cal-day { padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; }
+.cal-day.busy { background: var(--surface-2); }
+.cal-day.today { border-color: var(--accent); }
+.cal-day.past, .cal-day.off:not(.busy) { opacity: .55; }
+.cd-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+.cd-name { font-weight: 650; font-size: 13px; }
+.cd-date { color: var(--muted); font-size: 13px; }
+.cd-today { font-size: 11px; font-weight: 650; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+.cd-total { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cd-items { display: grid; gap: 4px; }
+.cd-empty { color: var(--faint); font-size: 13px; }
+.cal-day:not(.busy) .cd-head { margin-bottom: 0; }
+.cal-day:not(.busy) { display: flex; align-items: baseline; gap: 8px; }
+.cal-day:not(.busy) .cd-head { flex: 1; }
+.cal-day:not(.busy) .cd-items { order: 2; }
+
+/* ---------- month ---------- */
+.cm-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.cm-dow { text-align: center; font-size: 11px; font-weight: 650; color: var(--muted); padding-bottom: 4px; }
+.cm-cell {
+  aspect-ratio: 1 / 1.05; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 3px;
+  padding: 4px; border: 1px solid transparent; border-radius: 8px; background: transparent; text-align: left;
+}
+.cm-cell.busy { background: var(--surface-2); }
+.cm-cell.past, .cm-cell.off:not(.busy) { opacity: .5; }
+.cm-cell:hover { border-color: var(--border); }
+.cm-cell.today .cm-num { color: var(--accent); font-weight: 700; }
+.cm-cell.on { border-color: var(--accent); }
+.cm-num { font-size: 12px; font-variant-numeric: tabular-nums; }
+.cm-bars { display: grid; gap: 2px; }
+.cm-bar { height: 4px; border-radius: 2px; background: var(--c); }
+.cm-bar.buffer { background: repeating-linear-gradient(45deg, var(--hatch-bg) 0 2px, var(--hatch-line) 2px 4px); }
+.cm-more { font-size: 10px; color: var(--muted); line-height: 1; }
+.cm-detail { margin-top: 12px; padding: 10px; border-radius: 10px; background: var(--surface-2); }

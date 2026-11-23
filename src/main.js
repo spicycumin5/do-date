@@ -6,6 +6,7 @@ import './styles/settings.css';
 import './styles/session.css';
 import './styles/projects.css';
 import './styles/overview.css';
+import './styles/calendar.css';
 
 import { state, subscribe } from './state/store.js';
 import { initToast, toast } from './ui/toast.js';
@@ -18,6 +19,7 @@ import { renderStats } from './ui/stats.js';
 import { initSession, renderSession } from './ui/session.js';
 import { initProjects, renderProjects, openSheet as openNewProject } from './ui/projects.js';
 import { initOverview } from './ui/overview.js';
+import { initCalendar, renderCalendar } from './ui/calendar.js';
 
 initToast();
 initSettings();
@@ -26,6 +28,7 @@ initTank({ onSelectTask: revealTask });
 initSession();
 initProjects();
 initOverview({ onNewProject: openNewProject });
+initCalendar({ onSelectTask: revealTask });
 
 subscribe(({ list, settings, focusQuick, float }) => {
   if (list) renderList(state, focusQuick);
@@ -34,6 +37,7 @@ subscribe(({ list, settings, focusQuick, float }) => {
   renderSession(state);
   renderProjects();
   renderTank(state, float);
+  renderCalendar(state);
 });
 
 renderSettings(state);
@@ -42,6 +46,7 @@ renderStats(state);
 renderSession(state);
 renderProjects();
 renderTank(state);
+renderCalendar(state);
 
 // Accounts are optional: load Firebase only when it's configured, after the first paint.
 if (cloudEnabled) {
